@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
@@ -32,6 +33,7 @@ fun EditToolBar(
     onWrite: () -> Unit,
     onUndo: () -> Unit,
     onEraser: () -> Unit,
+    onDownload: () -> Unit
 ) {
     Box(
         modifier = Modifier.background(Color.Black)
@@ -115,6 +117,19 @@ fun EditToolBar(
                     Icon(imageVector = Icons.Default.Delete, contentDescription = "Eraser")
                 }
                 Text("Eraser")
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                IconButton(
+                    onClick = {
+                        onDownload()
+                    }
+                ) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Download")
+                }
+                Text("Download")
             }
         }
     }

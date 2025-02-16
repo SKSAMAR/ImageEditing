@@ -1,12 +1,17 @@
 package com.library.editinglibrary.composables
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,15 +25,21 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import com.library.editinglibrary.ComposableActivity
 import com.library.editinglibrary.ComposableActivity.Companion.TAG
 import com.library.editinglibrary.components.TextEditorDialogFragment
 import com.library.editinglibrary.composables.components.EditToolBar
+import com.library.editinglibrary.util.generatePdfAndSave
 import ja.burhanrashid52.photoeditor.OnPhotoEditorListener
 import ja.burhanrashid52.photoeditor.PhotoEditor
 import ja.burhanrashid52.photoeditor.PhotoEditorView
@@ -40,6 +51,20 @@ import kotlinx.coroutines.launch
 @Composable
 fun EditingUi(viewModel: EditingViewModel) {
     val activity = LocalActivity.current as ComposableActivity
+    var pdfSaveStatus by remember { mutableStateOf<String?>(null) }
+
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            val bitmaps = viewModel.editingModels.values.map { it.initialBitmap }
+            generatePdfAndSave(activity, bitmaps, onStatusChange = { status ->
+                pdfSaveStatus = status
+            })
+        } else {
+            pdfSaveStatus = "Permission Denied to save PDF."
+        }
+    }
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = {
         viewModel.editingModels.size
@@ -101,7 +126,8 @@ fun EditingUi(viewModel: EditingViewModel) {
                         onClick = {
                             scope.launch {
 
-                                viewModel.currentEditingModel?.initialBitmap = viewModel.currentEditingModel?.mPhotoEditor?.saveAsBitmap()!!
+                                viewModel.currentEditingModel?.initialBitmap =
+                                    viewModel.currentEditingModel?.mPhotoEditor?.saveAsBitmap()!!
 
                                 pagerState.scrollToPage(pagerState.currentPage - 1)
                             }
@@ -116,7 +142,8 @@ fun EditingUi(viewModel: EditingViewModel) {
                         enabled = pagerState.currentPage != viewModel.editingModels.size - 1,
                         onClick = {
                             scope.launch {
-                                viewModel.currentEditingModel?.initialBitmap = viewModel.currentEditingModel?.mPhotoEditor?.saveAsBitmap()!!
+                                viewModel.currentEditingModel?.initialBitmap =
+                                    viewModel.currentEditingModel?.mPhotoEditor?.saveAsBitmap()!!
                                 pagerState.scrollToPage(pagerState.currentPage + 1)
                             }
                         }
@@ -140,6 +167,21 @@ fun EditingUi(viewModel: EditingViewModel) {
                     },
                     onEraser = {
                         viewModel.currentEditingModel?.mPhotoEditor?.brushEraser()
+                    },
+                    onDownload = {
+                        pdfSaveStatus = "Generating PDF..."
+                        val bitmaps = viewModel.editingModels.values.map { it.initialBitmap }
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            generatePdfAndSave(activity, bitmaps, onStatusChange = { status -> pdfSaveStatus = status })
+                        } else {
+                            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                generatePdfAndSave(activity, bitmaps, onStatusChange = { status -> pdfSaveStatus = status })
+                            } else {
+                                requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                            }
+                        }
                     }
                 )
             }
