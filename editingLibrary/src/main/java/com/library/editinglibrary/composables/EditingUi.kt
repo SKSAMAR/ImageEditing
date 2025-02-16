@@ -14,10 +14,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -32,13 +35,19 @@ import ja.burhanrashid52.photoeditor.PhotoEditorView
 import ja.burhanrashid52.photoeditor.TextStyleBuilder
 import ja.burhanrashid52.photoeditor.ViewType
 import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
+import kotlinx.coroutines.launch
 
 @Composable
 fun EditingUi(viewModel: EditingViewModel) {
     val activity = LocalActivity.current as ComposableActivity
+    val scope = rememberCoroutineScope()
+    val pagerState = rememberPagerState(pageCount = {
+        viewModel.editingModels.size
+    })
     LaunchedEffect(viewModel.currentEditingModel) {
-        viewModel.currentEditingModel?.let { value->
-            value.scaleGestureDetector = ScaleGestureDetector(activity, ScaleListener(editingModel = value))
+        viewModel.currentEditingModel?.let { value ->
+            value.scaleGestureDetector =
+                ScaleGestureDetector(activity, ScaleListener(editingModel = value))
         }
     }
 
@@ -46,30 +55,38 @@ fun EditingUi(viewModel: EditingViewModel) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            AndroidView(
-                modifier = Modifier.weight(1f),
-                factory = { context ->
-                    FrameLayout(
-                        context, null
-                    ).apply {
-                        setBackgroundColor(android.graphics.Color.WHITE) // Or Color.White if you have imported androidx.compose.ui.graphics.Color
-                        viewModel.currentEditingModel?.frameLayout = this // Initialize frameLayout here!
-                        addView(
-                            PhotoEditorView(
-                                context = context
-                            ).apply {
-                                source.setImageBitmap(viewModel.currentEditingModel?.initialBitmap)
-                                makePhotoPinchAble(
-                                    editingModel = viewModel.currentEditingModel!!,
-                                    activity = activity
-                                )
-                                setFrameLayoutOnTouchListener(editingModel = viewModel.currentEditingModel!!)
-                                addFrameLayoutOnLayoutChangeListener()
-                            }
-                        )
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = false
+            ) { page ->
+                viewModel.currentIndex = page
+                viewModel.currentEditingModel = viewModel.editingModels[page]
+                AndroidView(
+                    modifier = Modifier.weight(1f),
+                    factory = { context ->
+                        FrameLayout(
+                            context, null
+                        ).apply {
+                            setBackgroundColor(android.graphics.Color.WHITE) // Or Color.White if you have imported androidx.compose.ui.graphics.Color
+                            viewModel.currentEditingModel?.frameLayout =
+                                this // Initialize frameLayout here!
+                            addView(
+                                PhotoEditorView(
+                                    context = context
+                                ).apply {
+                                    source.setImageBitmap(viewModel.currentEditingModel?.initialBitmap)
+                                    makePhotoPinchAble(
+                                        editingModel = viewModel.currentEditingModel!!,
+                                        activity = activity
+                                    )
+                                    setFrameLayoutOnTouchListener(editingModel = viewModel.currentEditingModel!!)
+                                    addFrameLayoutOnLayoutChangeListener()
+                                }
+                            )
+                        }
                     }
-                }
-            )
+                )
+            }
             Column {
                 Row(
                     modifier = Modifier
@@ -79,20 +96,24 @@ fun EditingUi(viewModel: EditingViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Button(
-                        enabled = viewModel.currentIndex != 0,
+                        enabled = pagerState.currentPage != 0,
                         onClick = {
-                            viewModel.currentIndex--
+                            scope.launch {
+                                pagerState.scrollToPage(pagerState.currentPage - 1)
+                            }
                         }
                     ) {
                         Text(text = "Previous Page")
                     }
 
-                    Text(text = "Current Page: ${viewModel.currentIndex+1}")
+                    Text(text = "Current Page: ${pagerState.currentPage + 1}")
 
                     Button(
-                        enabled = viewModel.currentIndex != viewModel.editingModels.size-1,
+                        enabled = pagerState.currentPage != viewModel.editingModels.size - 1,
                         onClick = {
-                            viewModel.currentIndex++
+                            scope.launch {
+                                pagerState.scrollToPage(pagerState.currentPage + 1)
+                            }
                         }
                     ) {
                         Text(text = "Next Page")
