@@ -12,11 +12,9 @@ import ja.burhanrashid52.photoeditor.PhotoEditor
 import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
 
 class EditingViewModel : ViewModel() {
-
     var editingModels = mutableStateMapOf<Int, EditingModel>()
     var currentEditingModel by mutableStateOf<EditingModel?>(null)
-
-
+    var currentIndex by mutableStateOf(0)
 }
 
 class EditingModel {

@@ -48,15 +48,11 @@ class ComposableActivity : AppCompatActivity(),
         fetchFromAssets()
         setContent {
             MyContentEditorTheme {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                        Column(
-                            modifier = Modifier.padding(innerPadding)
-                        ) {
-                            EditingUi(viewModel = viewModel)
-                        }
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    Column(
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        EditingUi(viewModel = viewModel)
                     }
                 }
             }
@@ -73,6 +69,7 @@ class ComposableActivity : AppCompatActivity(),
                     editingModel.initialBitmap = bitmap
                     viewModel.editingModels[index] = editingModel
                 }
+                viewModel.currentIndex = 0
                 viewModel.currentEditingModel = viewModel.editingModels[0]
             } else {
                 Log.e(TAG, "Failed to load PDF or convert to bitmaps")

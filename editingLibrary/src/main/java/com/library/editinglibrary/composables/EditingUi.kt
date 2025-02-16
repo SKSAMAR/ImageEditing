@@ -8,15 +8,22 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.compose.LocalActivity
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.library.editinglibrary.ComposableActivity
 import com.library.editinglibrary.ComposableActivity.Companion.TAG
-import com.library.editinglibrary.R
 import com.library.editinglibrary.components.TextEditorDialogFragment
 import com.library.editinglibrary.composables.components.EditToolBar
 import ja.burhanrashid52.photoeditor.OnPhotoEditorListener
@@ -30,9 +37,8 @@ import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
 fun EditingUi(viewModel: EditingViewModel) {
     val activity = LocalActivity.current as ComposableActivity
     LaunchedEffect(viewModel.currentEditingModel) {
-        viewModel.currentEditingModel?.let {
-            viewModel.currentEditingModel?.scaleGestureDetector =
-                ScaleGestureDetector(activity, ScaleListener(editingModel = it))
+        viewModel.currentEditingModel?.let { value->
+            value.scaleGestureDetector = ScaleGestureDetector(activity, ScaleListener(editingModel = value))
         }
     }
 
@@ -64,24 +70,53 @@ fun EditingUi(viewModel: EditingViewModel) {
                     }
                 }
             )
-            EditToolBar(
-                editingModel = viewModel.currentEditingModel!!,
-                onEditClick = {
-                    activity.editSomething(viewModel = viewModel)
-                },
-                onSaveClick = {
-                    viewModel.currentEditingModel?.mPhotoEditor?.setBrushDrawingMode(false)
-                },
-                onWrite = {
-                    activity.writeSomething(editingModel = viewModel.currentEditingModel!!)
-                },
-                onUndo = {
-                    viewModel.currentEditingModel?.mPhotoEditor?.undo()
-                },
-                onEraser = {
-                    viewModel.currentEditingModel?.mPhotoEditor?.brushEraser()
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp, vertical = 15.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        enabled = viewModel.currentIndex != 0,
+                        onClick = {
+                            viewModel.currentIndex--
+                        }
+                    ) {
+                        Text(text = "Previous Page")
+                    }
+
+                    Text(text = "Current Page: ${viewModel.currentIndex+1}")
+
+                    Button(
+                        enabled = viewModel.currentIndex != viewModel.editingModels.size-1,
+                        onClick = {
+                            viewModel.currentIndex++
+                        }
+                    ) {
+                        Text(text = "Next Page")
+                    }
                 }
-            )
+                EditToolBar(
+                    editingModel = viewModel.currentEditingModel!!,
+                    onEditClick = {
+                        activity.editSomething(viewModel = viewModel)
+                    },
+                    onSaveClick = {
+                        viewModel.currentEditingModel?.mPhotoEditor?.setBrushDrawingMode(false)
+                    },
+                    onWrite = {
+                        activity.writeSomething(editingModel = viewModel.currentEditingModel!!)
+                    },
+                    onUndo = {
+                        viewModel.currentEditingModel?.mPhotoEditor?.undo()
+                    },
+                    onEraser = {
+                        viewModel.currentEditingModel?.mPhotoEditor?.brushEraser()
+                    }
+                )
+            }
         }
     }
 }
