@@ -29,60 +29,70 @@ import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
 @Composable
 fun EditingUi(viewModel: EditingViewModel) {
     val activity = LocalActivity.current as ComposableActivity
-    LaunchedEffect(Unit) {
-        viewModel.scaleGestureDetector = ScaleGestureDetector(activity, ScaleListener(viewModel = viewModel))
+    LaunchedEffect(viewModel.currentEditingModel) {
+        viewModel.currentEditingModel?.let {
+            viewModel.currentEditingModel?.scaleGestureDetector =
+                ScaleGestureDetector(activity, ScaleListener(editingModel = it))
+        }
     }
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        AndroidView(
-            modifier = Modifier.weight(1f),
-            factory = { context ->
-                FrameLayout(
-                    context, null
-                ).apply {
-                    viewModel.frameLayout = this // Initialize frameLayout here!
-                    addView(
-                        PhotoEditorView(
-                            context = context
-                        ).apply {
-                            source.setImageResource(R.drawable.paris_tower)
-                            makePhotoPinchAble(viewModel = viewModel, activity = activity)
-                            setFrameLayoutOnTouchListener(viewModel = viewModel)
-                            addFrameLayoutOnLayoutChangeListener()
-                        }
-                    )
+
+    viewModel.currentEditingModel?.let {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            AndroidView(
+                modifier = Modifier.weight(1f),
+                factory = { context ->
+                    FrameLayout(
+                        context, null
+                    ).apply {
+                        setBackgroundColor(android.graphics.Color.WHITE) // Or Color.White if you have imported androidx.compose.ui.graphics.Color
+                        viewModel.currentEditingModel?.frameLayout = this // Initialize frameLayout here!
+                        addView(
+                            PhotoEditorView(
+                                context = context
+                            ).apply {
+                                source.setImageBitmap(viewModel.currentEditingModel?.initialBitmap)
+                                makePhotoPinchAble(
+                                    editingModel = viewModel.currentEditingModel!!,
+                                    activity = activity
+                                )
+                                setFrameLayoutOnTouchListener(editingModel = viewModel.currentEditingModel!!)
+                                addFrameLayoutOnLayoutChangeListener()
+                            }
+                        )
+                    }
                 }
-            }
-        )
-        EditToolBar(
-            viewModel = viewModel,
-            onEditClick = {
-                activity.editSomething(viewModel = viewModel)
-            },
-            onSaveClick = {
-                viewModel.mPhotoEditor.setBrushDrawingMode(false)
-            },
-            onWrite = {
-                activity.writeSomething(viewModel = viewModel)
-            },
-            onUndo = {
-                viewModel.mPhotoEditor.undo()
-            },
-            onEraser = {
-                viewModel.mPhotoEditor.brushEraser()
-            }
-        )
+            )
+            EditToolBar(
+                editingModel = viewModel.currentEditingModel!!,
+                onEditClick = {
+                    activity.editSomething(viewModel = viewModel)
+                },
+                onSaveClick = {
+                    viewModel.currentEditingModel?.mPhotoEditor?.setBrushDrawingMode(false)
+                },
+                onWrite = {
+                    activity.writeSomething(editingModel = viewModel.currentEditingModel!!)
+                },
+                onUndo = {
+                    viewModel.currentEditingModel?.mPhotoEditor?.undo()
+                },
+                onEraser = {
+                    viewModel.currentEditingModel?.mPhotoEditor?.brushEraser()
+                }
+            )
+        }
     }
 }
 
-fun PhotoEditorView.makePhotoPinchAble(viewModel: EditingViewModel, activity: ComposableActivity) {
+fun PhotoEditorView.makePhotoPinchAble(editingModel: EditingModel, activity: ComposableActivity) {
     val pinchTextScalable =
         activity.intent.getBooleanExtra(ComposableActivity.PINCH_TEXT_SCALABLE_INTENT_KEY, true)
-    viewModel.mPhotoEditor = PhotoEditor.Builder(activity, this)
+    editingModel.mPhotoEditor = PhotoEditor.Builder(activity, this)
         .setPinchTextScalable(pinchTextScalable)
         .build()
-    viewModel.mPhotoEditor.setOnPhotoEditorListener(object : OnPhotoEditorListener {
+    editingModel.mPhotoEditor.setOnPhotoEditorListener(object : OnPhotoEditorListener {
         override fun onEditTextChangeListener(rootView: View, text: String, colorCode: Int) {
             val textEditorDialogFragment = TextEditorDialogFragment.show(activity, text, colorCode)
             textEditorDialogFragment.setOnTextEditorListener(object :
@@ -90,7 +100,7 @@ fun PhotoEditorView.makePhotoPinchAble(viewModel: EditingViewModel, activity: Co
                 override fun onDone(inputText: String, colorCode: Int) {
                     val styleBuilder = TextStyleBuilder()
                     styleBuilder.withTextColor(colorCode)
-                    viewModel.mPhotoEditor.editText(rootView, inputText, styleBuilder)
+                    editingModel.mPhotoEditor.editText(rootView, inputText, styleBuilder)
                 }
             })
         }
@@ -108,7 +118,7 @@ fun PhotoEditorView.makePhotoPinchAble(viewModel: EditingViewModel, activity: Co
                 "onRemoveViewListener() called with: viewType = [$viewType], numberOfAddedViews = [$numberOfAddedViews]"
             )
 
-            viewModel.unDoAvailable = viewModel.mPhotoEditor.isUndoAvailable
+            editingModel.unDoAvailable = editingModel.mPhotoEditor.isUndoAvailable
         }
 
         override fun onStartViewChangeListener(viewType: ViewType) {
@@ -128,26 +138,26 @@ fun PhotoEditorView.makePhotoPinchAble(viewModel: EditingViewModel, activity: Co
 }
 
 @SuppressLint("ClickableViewAccessibility")
-fun FrameLayout.setFrameLayoutOnTouchListener(viewModel: EditingViewModel) {
+fun FrameLayout.setFrameLayoutOnTouchListener(editingModel: EditingModel) {
     this.setOnTouchListener { _, motionEvent ->
-        viewModel.scaleGestureDetector.onTouchEvent(motionEvent)
+        editingModel.scaleGestureDetector.onTouchEvent(motionEvent)
 
-        if (!viewModel.scaleGestureDetector.isInProgress) {
+        if (!editingModel.scaleGestureDetector.isInProgress) {
             when (motionEvent.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    viewModel.lastTouchX = motionEvent.x
-                    viewModel.lastTouchY = motionEvent.y
+                    editingModel.lastTouchX = motionEvent.x
+                    editingModel.lastTouchY = motionEvent.y
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    val deltaX = motionEvent.x - viewModel.lastTouchX
-                    val deltaY = motionEvent.y - viewModel.lastTouchY
+                    val deltaX = motionEvent.x - editingModel.lastTouchX
+                    val deltaY = motionEvent.y - editingModel.lastTouchY
 
-                    val newX = (viewModel.currentTranslateX + deltaX).coerceIn(
+                    val newX = (editingModel.currentTranslateX + deltaX).coerceIn(
                         -width.toFloat(),
                         width.toFloat()
                     )
-                    val newY = (viewModel.currentTranslateY + deltaY).coerceIn(
+                    val newY = (editingModel.currentTranslateY + deltaY).coerceIn(
                         -height.toFloat(),
                         height.toFloat()
                     )
@@ -157,8 +167,8 @@ fun FrameLayout.setFrameLayoutOnTouchListener(viewModel: EditingViewModel) {
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    viewModel.currentTranslateX = translationX
-                    viewModel.currentTranslateY = translationY
+                    editingModel.currentTranslateX = translationX
+                    editingModel.currentTranslateY = translationY
                 }
             }
         }
@@ -177,48 +187,48 @@ fun FrameLayout.addFrameLayoutOnLayoutChangeListener() {
     }
 }
 
-fun AppCompatActivity.writeSomething(viewModel: EditingViewModel){
+fun AppCompatActivity.writeSomething(editingModel: EditingModel) {
     val textEditorDialogFragment = TextEditorDialogFragment.show(this)
     textEditorDialogFragment.setOnTextEditorListener(object :
         TextEditorDialogFragment.TextEditorListener {
         override fun onDone(inputText: String, colorCode: Int) {
             val styleBuilder = TextStyleBuilder()
             styleBuilder.withTextColor(colorCode)
-            viewModel.mPhotoEditor.addText(inputText, styleBuilder)
+            editingModel.mPhotoEditor.addText(inputText, styleBuilder)
         }
     })
 }
 
-fun ComposableActivity.editSomething(viewModel: EditingViewModel){
-    viewModel.mPhotoEditor.setBrushDrawingMode(true)
-    viewModel.mShapeBuilder = ShapeBuilder()
-    viewModel.mPhotoEditor.setShape(viewModel.mShapeBuilder)
+fun ComposableActivity.editSomething(viewModel: EditingViewModel) {
+    viewModel.currentEditingModel?.mPhotoEditor?.setBrushDrawingMode(true)
+    viewModel.currentEditingModel?.mShapeBuilder = ShapeBuilder()
+    viewModel.currentEditingModel?.mPhotoEditor?.setShape(viewModel.currentEditingModel?.mShapeBuilder!!)
     if (mShapeBSFragment.isAdded) {
         return
     }
     mShapeBSFragment.show(supportFragmentManager, mShapeBSFragment.tag)
 }
 
-class ScaleListener(private val viewModel: EditingViewModel) :
+class ScaleListener(private val editingModel: EditingModel) :
     ScaleGestureDetector.SimpleOnScaleGestureListener() {
     override fun onScale(detector: ScaleGestureDetector): Boolean {
-        viewModel.scaleFactor *= detector.scaleFactor
-        viewModel.scaleFactor = viewModel.scaleFactor.coerceIn(1.0f, 3.0f)
+        editingModel.scaleFactor *= detector.scaleFactor
+        editingModel.scaleFactor = editingModel.scaleFactor.coerceIn(1.0f, 3.0f)
 
         // Ensure pivot remains within bounds
-        val focusX = detector.focusX.coerceIn(0f, viewModel.frameLayout.width.toFloat())
-        val focusY = detector.focusY.coerceIn(0f, viewModel.frameLayout.height.toFloat())
+        val focusX = detector.focusX.coerceIn(0f, editingModel.frameLayout.width.toFloat())
+        val focusY = detector.focusY.coerceIn(0f, editingModel.frameLayout.height.toFloat())
 
-        viewModel.frameLayout.pivotX = focusX
-        viewModel.frameLayout.pivotY = focusY
+        editingModel.frameLayout.pivotX = focusX
+        editingModel.frameLayout.pivotY = focusY
 
-        viewModel.frameLayout.scaleX = viewModel.scaleFactor
-        viewModel.frameLayout.scaleY = viewModel.scaleFactor
+        editingModel.frameLayout.scaleX = editingModel.scaleFactor
+        editingModel.frameLayout.scaleY = editingModel.scaleFactor
 
         // Prevent pivot issues when zooming out
-        if (viewModel.scaleFactor <= 1.0f) {
-            viewModel.frameLayout.pivotX = viewModel.frameLayout.width / 2f
-            viewModel.frameLayout.pivotY = viewModel.frameLayout.height / 2f
+        if (editingModel.scaleFactor <= 1.0f) {
+            editingModel.frameLayout.pivotX = editingModel.frameLayout.width / 2f
+            editingModel.frameLayout.pivotY = editingModel.frameLayout.height / 2f
         }
 
         return true

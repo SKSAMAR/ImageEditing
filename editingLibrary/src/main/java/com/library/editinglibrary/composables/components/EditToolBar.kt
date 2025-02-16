@@ -21,11 +21,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.library.editinglibrary.composables.EditingViewModel
+import com.library.editinglibrary.composables.EditingModel
 
 @Composable
 fun EditToolBar(
-    viewModel: EditingViewModel,
+    editingModel: EditingModel,
     onEditClick: () -> Unit,
     onSaveClick: () -> Unit,
     onWrite: () -> Unit,
@@ -47,7 +47,7 @@ fun EditToolBar(
             ) {
                 IconButton(
                     onClick = {
-                        viewModel.unDoAvailable = viewModel.mPhotoEditor.isUndoAvailable
+                        editingModel.unDoAvailable = editingModel.mPhotoEditor.isUndoAvailable
                         onEditClick()
                     }
                 ) {
@@ -61,7 +61,7 @@ fun EditToolBar(
             ) {
                 IconButton(
                     onClick = {
-                        viewModel.unDoAvailable = viewModel.mPhotoEditor.isUndoAvailable
+                        editingModel.unDoAvailable = editingModel.mPhotoEditor.isUndoAvailable
                         onSaveClick()
                     }
                 ) {
@@ -75,7 +75,7 @@ fun EditToolBar(
             ) {
                 IconButton(
                     onClick = {
-                        viewModel.unDoAvailable = viewModel.mPhotoEditor.isUndoAvailable
+                        editingModel.unDoAvailable = editingModel.mPhotoEditor.isUndoAvailable
                         onWrite()
                     }
                 ) {
@@ -88,10 +88,10 @@ fun EditToolBar(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 IconButton(
-                    enabled = viewModel.unDoAvailable,
+                    enabled = editingModel.unDoAvailable,
                     onClick = {
-                        viewModel.unDoAvailable = viewModel.mPhotoEditor.isUndoAvailable
-                        if (viewModel.unDoAvailable){
+                        editingModel.unDoAvailable = editingModel.mPhotoEditor.isUndoAvailable
+                        if (editingModel.unDoAvailable){
                             onUndo()
                         }
 
@@ -107,7 +107,7 @@ fun EditToolBar(
             ) {
                 IconButton(
                     onClick = {
-                        viewModel.unDoAvailable = viewModel.mPhotoEditor.isUndoAvailable
+                        editingModel.unDoAvailable = editingModel.mPhotoEditor.isUndoAvailable
                         onEraser()
                     }
                 ) {
