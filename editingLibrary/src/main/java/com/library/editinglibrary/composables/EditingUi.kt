@@ -61,6 +61,7 @@ fun EditingUi(viewModel: EditingViewModel) {
             ) { page ->
                 viewModel.currentIndex = page
                 viewModel.currentEditingModel = viewModel.editingModels[page]
+
                 AndroidView(
                     modifier = Modifier.weight(1f),
                     factory = { context ->
@@ -99,6 +100,9 @@ fun EditingUi(viewModel: EditingViewModel) {
                         enabled = pagerState.currentPage != 0,
                         onClick = {
                             scope.launch {
+
+                                viewModel.currentEditingModel?.initialBitmap = viewModel.currentEditingModel?.mPhotoEditor?.saveAsBitmap()!!
+
                                 pagerState.scrollToPage(pagerState.currentPage - 1)
                             }
                         }
@@ -112,6 +116,7 @@ fun EditingUi(viewModel: EditingViewModel) {
                         enabled = pagerState.currentPage != viewModel.editingModels.size - 1,
                         onClick = {
                             scope.launch {
+                                viewModel.currentEditingModel?.initialBitmap = viewModel.currentEditingModel?.mPhotoEditor?.saveAsBitmap()!!
                                 pagerState.scrollToPage(pagerState.currentPage + 1)
                             }
                         }
